@@ -123,13 +123,15 @@ class WaterMarkCamera : FrameLayout {
 
     class WaterMarkAdapter(resourceId: Int) : BaseQuickAdapter<ImageSource, BaseViewHolder>(resourceId) {
         override fun convert(helper: BaseViewHolder, item: ImageSource) {
+            helper.setImageResource(R.id.close, R.mipmap.close)
             when (item) {
                 is ImageSource.CapturedImageSource -> {
                     helper.setImageBitmap(R.id.img, item.bitmap)
+                    helper.setVisible(R.id.close, true)
                 }
                 is ImageSource.LocalImageSource -> {
                     helper.setImageResource(R.id.img, item.id)
-                    helper.setImageResource(R.id.close, R.drawable.ic_launcher_background)
+                    helper.setVisible(R.id.close, false)
                 }
             }
             helper.addOnClickListener(R.id.img)
@@ -171,7 +173,7 @@ class WaterMarkCamera : FrameLayout {
     sealed class ImageSource {
         data class CapturedImageSource(val bitmap: Bitmap) : ImageSource()
         object LocalImageSource : ImageSource() {
-            const val id: Int = R.drawable.ic_launcher_background
+            const val id: Int = R.mipmap.plus
         }
     }
 
