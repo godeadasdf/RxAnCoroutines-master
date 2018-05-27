@@ -45,7 +45,7 @@ import java.util.*
  */
 
 
-class WaterMarkCamera : FrameLayout {
+class CapturePreview : FrameLayout {
 
 
     //以下为使用该套件的需要依赖的全部两个参数

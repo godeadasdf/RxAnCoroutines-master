@@ -6,10 +6,10 @@
     android:layout_height="match_parent"
     tools:context="com.example.kangning.rxancoroutines.MainActivity">
 
-    <watermarkcamera.WaterMarkCamera
+    <watermarkcamera.CapturePreview
         android:id="@+id/water_mark_camera"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"></watermarkcamera.WaterMarkCamera>
+        android:layout_height="match_parent"></watermarkcamera.CapturePreview>
 
     <watermarkcamera.PhotoPreview
         android:id="@+id/photo_preview"
