@@ -1,7 +1,14 @@
 package watermarkcamera
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.os.Environment
+import android.provider.MediaStore
+import android.support.v4.app.ActivityCompat.startActivityForResult
+import android.support.v4.content.FileProvider
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.AttributeSet
@@ -12,15 +19,42 @@ import com.chad.library.adapter.base.BaseQuickAdapter
 import com.chad.library.adapter.base.BaseViewHolder
 import com.example.kangning.rxancoroutines.R
 import kotlinx.android.synthetic.main.marker.view.*
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.IOException
 import java.util.*
 
 /**
- * Created by kangning on 2018/5/25.
+ * 水印相机+图片预览封装
+ *
+ * use case:
+ *class MainActivity : AppCompatActivity() {
+ *
+ *override fun onCreate(savedInstanceState: Bundle?) {
+ *    super.onCreate(savedInstanceState)
+ *    setContentView(R.layout.activity_main)
+ *    water_mark_camera.attachedActivity = this
+ *    water_mark_camera.photoPreview = photo_preview
+ * }
+ *
+ *override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+ *     water_mark_camera.onActivityResult(requestCode, resultCode, data)
+ *}
+ *}
  */
+
+
 class WaterMarkCamera : FrameLayout {
+
+
+    //以下为使用该套件的需要依赖的全部两个参数
+    lateinit var attachedActivity: Activity
+    lateinit var photoPreview: PhotoPreview
 
     companion object {
         private const val SIZE = 3
+        const val REQUEST_CAMERA = 0x0000001
     }
 
     private val dataStack: Stack<ImageSource> by lazy {
@@ -28,7 +62,7 @@ class WaterMarkCamera : FrameLayout {
     }
 
 
-    fun getCapturedData() = kotlin.run {
+    private fun getCapturedData() = kotlin.run {
         val bitmaps = ArrayList<Bitmap>()
         dataStack.forEach {
             if (it is ImageSource.CapturedImageSource) {
@@ -49,14 +83,6 @@ class WaterMarkCamera : FrameLayout {
         }
     }
 
-
-    interface PhotoClickListener {
-        fun onLocalPress()
-        fun onCapturedPress(index: Int)
-    }
-
-    lateinit var onCapturePressListener: PhotoClickListener
-
     private val waterMarkAdapter: WaterMarkAdapter by lazy {
         WaterMarkAdapter(R.layout.marker_image_item).apply {
             dataStack.push(ImageSource.LocalImageSource)
@@ -66,10 +92,13 @@ class WaterMarkCamera : FrameLayout {
                     R.id.img ->
                         when (adapter.data[position]) {
                             is ImageSource.LocalImageSource -> {
-                                onCapturePressListener.onLocalPress()
+                                openCamera()
                             }
                             is ImageSource.CapturedImageSource -> {
-                                onCapturePressListener.onCapturedPress(position)
+                                if (photoPreview != null) {
+                                    photoPreview.visibility = View.VISIBLE
+                                    photoPreview.initPhotos(getCapturedData(), position)
+                                }
                             }
                         }
                     R.id.close ->
@@ -110,7 +139,7 @@ class WaterMarkCamera : FrameLayout {
 
     private fun getDataSize() = dataStack.size
 
-    fun addImage(bitmap: Bitmap) {
+    private fun addImage(bitmap: Bitmap) {
         addCapturedImage(ImageSource.CapturedImageSource(bitmap))
     }
 
@@ -139,22 +168,53 @@ class WaterMarkCamera : FrameLayout {
     }
 
 
-    sealed class ImageSource(imageType: ImageType) {
-        data class CapturedImageSource(val bitmap: Bitmap) : ImageSource(ImageType.CAPTURE)
-        object LocalImageSource : ImageSource(ImageType.LOCAL) {
+    sealed class ImageSource {
+        data class CapturedImageSource(val bitmap: Bitmap) : ImageSource()
+        object LocalImageSource : ImageSource() {
             const val id: Int = R.drawable.ic_launcher_background
         }
     }
 
-    enum class ImageType {
-        LOCAL, CAPTURE
+
+    private fun makePhotoFile() =
+            Environment.getExternalStorageDirectory().path + "/${System.currentTimeMillis()}.png"// 获取SD卡路径
+
+
+    private var currentPath = ""
+    // 拍照后存储并显示图片
+    private fun openCamera() {
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)// 启动系统相机
+        currentPath = makePhotoFile()
+        val photoFile = File(currentPath) // 传递路径
+        val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                photoFile
+        )
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)// 更改系统默认存储路径
+        startActivityForResult(attachedActivity, intent, REQUEST_CAMERA, null)
     }
 
-    class ImageUtil {
-        companion object {
-            fun zipImage(source: Bitmap): Bitmap {
+    //用于置于activity中onActivityResult的方法
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (data == null) return
+        if (resultCode == Activity.RESULT_OK) { // 如果返回数据
+            if (requestCode == REQUEST_CAMERA) {
+                var fis: FileInputStream? = null
+                try {
+                    fis = FileInputStream(currentPath)
+                    val bitmap = BitmapFactory.decodeStream(fis)
+                    addImage(bitmap)
+                } catch (e: FileNotFoundException) {
+                    e.printStackTrace()
+                } finally {
+                    try {
+                        fis?.close()
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                    }
 
-                return source
+                }
             }
         }
     }
