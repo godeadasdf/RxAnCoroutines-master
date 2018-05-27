@@ -2,7 +2,6 @@ package watermarkcamera
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.AttributeSet
@@ -20,9 +19,25 @@ import java.util.*
  */
 class WaterMarkCamera : FrameLayout {
 
+    companion object {
+        private const val SIZE = 3
+    }
+
     private val dataStack: Stack<ImageSource> by lazy {
         Stack<ImageSource>()
     }
+
+
+    fun getCapturedData() = kotlin.run {
+        val bitmaps = ArrayList<Bitmap>()
+        dataStack.forEach {
+            if (it is ImageSource.CapturedImageSource) {
+                bitmaps.add(it.bitmap)
+            }
+        }
+        bitmaps
+    }
+
 
     private val customView: View by lazy {
         LayoutInflater.from(context).inflate(R.layout.marker, null, false)
@@ -34,6 +49,14 @@ class WaterMarkCamera : FrameLayout {
         }
     }
 
+
+    interface PhotoClickListener {
+        fun onLocalPress()
+        fun onCapturedPress(index: Int)
+    }
+
+    lateinit var onCapturePressListener: PhotoClickListener
+
     private val waterMarkAdapter: WaterMarkAdapter by lazy {
         WaterMarkAdapter(R.layout.marker_image_item).apply {
             dataStack.push(ImageSource.LocalImageSource)
@@ -43,10 +66,10 @@ class WaterMarkCamera : FrameLayout {
                     R.id.img ->
                         when (adapter.data[position]) {
                             is ImageSource.LocalImageSource -> {
-                                addCapturedImage(ImageSource.CapturedImageSource(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)))
+                                onCapturePressListener.onLocalPress()
                             }
                             is ImageSource.CapturedImageSource -> {
-
+                                onCapturePressListener.onCapturedPress(position)
                             }
                         }
                     R.id.close ->
@@ -87,6 +110,10 @@ class WaterMarkCamera : FrameLayout {
 
     private fun getDataSize() = dataStack.size
 
+    fun addImage(bitmap: Bitmap) {
+        addCapturedImage(ImageSource.CapturedImageSource(bitmap))
+    }
+
     private fun addCapturedImage(imageSource: ImageSource.CapturedImageSource) {
         val dataSize = getDataSize()
         /*   waterMarkAdapter.remove(dataSize - 1)
@@ -96,7 +123,7 @@ class WaterMarkCamera : FrameLayout {
            }*/
         dataStack.pop()
         dataStack.add(imageSource)
-        if (dataSize < 3) {
+        if (dataSize < SIZE) {
             dataStack.push(ImageSource.LocalImageSource)
         }
         waterMarkAdapter.setNewData(dataStack)
@@ -119,19 +146,16 @@ class WaterMarkCamera : FrameLayout {
         }
     }
 
-
     enum class ImageType {
         LOCAL, CAPTURE
     }
 
-    //todo
     class ImageUtil {
         companion object {
+            fun zipImage(source: Bitmap): Bitmap {
 
-            /*  fun zipImage(): Bitmap {
-
-
-              }*/
+                return source
+            }
         }
     }
 }
