@@ -94,6 +94,11 @@ class CapturePreview : FrameLayout {
                             is ImageSource.LocalImageSource -> {
                                 openCamera()
                             }
+
+                            is ImageSource.LocalPlusSource -> {
+                                openCamera()
+                            }
+
                             is ImageSource.CapturedImageSource -> {
                                 if (photoPreview != null) {
                                     photoPreview.visibility = View.VISIBLE
@@ -133,6 +138,11 @@ class CapturePreview : FrameLayout {
                     helper.setImageResource(R.id.img, item.id)
                     helper.setVisible(R.id.close, false)
                 }
+
+                is ImageSource.LocalPlusSource -> {
+                    helper.setImageResource(R.id.img, item.id)
+                    helper.setVisible(R.id.close, false)
+                }
             }
             helper.addOnClickListener(R.id.img)
             helper.addOnClickListener(R.id.close)
@@ -167,6 +177,7 @@ class CapturePreview : FrameLayout {
 
     sealed class ImageSource {
         data class CapturedImageSource(val bitmap: Bitmap) : ImageSource()
+        data class LocalPlusSource(val id: Int) : ImageSource()
         object LocalImageSource : ImageSource() {
             const val id: Int = R.mipmap.plus
         }
