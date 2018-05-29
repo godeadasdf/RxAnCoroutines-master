@@ -147,11 +147,6 @@ class CapturePreview : FrameLayout {
 
     private fun addCapturedImage(imageSource: ImageSource.CapturedImageSource) {
         val dataSize = getDataSize()
-        /*   waterMarkAdapter.remove(dataSize - 1)
-           waterMarkAdapter.addData(imageSource)
-           if (dataSize < 3) {
-               waterMarkAdapter.addData(ImageSource.LocalImageSource(R.drawable.ic_launcher_background))
-           }*/
         dataStack.pop()
         dataStack.add(imageSource)
         if (dataSize < SIZE) {
